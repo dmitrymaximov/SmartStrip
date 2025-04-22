@@ -10,6 +10,10 @@ app.debug = True
 setting = Setting()
 led_state = False
 
+@app.post("/")
+async def root():
+    return True
+
 
 @app.post("/color")
 async def set_color(color: str):
