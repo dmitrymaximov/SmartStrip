@@ -114,7 +114,7 @@ async def set_settings(new_settings: Setting):
     return {"success": True, "msg": f"settings updated to {setting}"}
 
 
-@app.post("/debug-led/{state}", tags=["debug"])
+@app.post("/debug-led/{new_state}", tags=["debug"])
 async def set_debug_led(new_state: bool):
     command = "led_on" if new_state else "led_off"
     await send_command_to_esp32(command)
