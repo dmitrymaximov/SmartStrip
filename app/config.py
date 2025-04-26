@@ -1,29 +1,21 @@
 from dataclasses import dataclass
+from pathlib import Path
 
-
-# from environs import Env
+from environs import Env
 
 
 @dataclass
 class Config:
-    color: str | None = None
-    mode: str = "rainbow"
-    brightness: int = 100
-    max_brightness: int = 100
+    max_brightness: int
 
 
-"""
 def load_config(path: str = None) -> Config:
     env = Env()
-    env.read_env(path)
+    env.read_env(Path(__file__).parent.parent / ".env")
 
     return Config(
-        color=env("COLOR"),
-        mode=env("MODE"),
-        brightness=env("BRIGHTNESS"),
         max_brightness=env("MAX_BRIGHTNESS")
     )
 
 
-config = load_config('../.env')
-"""
+config = load_config()

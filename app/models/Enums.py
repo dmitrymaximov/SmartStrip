@@ -1,8 +1,12 @@
 from enum import Enum
 
 
+class StripState(int, Enum):
+    OFF = 0
+    ON = 1
+
+
 class StripMode(str, Enum):
-    OFF = "off"
     RAINBOW = "rainbow"
     SOLID_COLOR = "solid_color"
 

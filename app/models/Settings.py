@@ -1,17 +1,13 @@
-from pydantic import BaseModel, field_validator, model_validator
+from pydantic import BaseModel, model_validator, Field
 
-from app.models.Enums import StripBrightness, StripColor, StripMode
+from app.models.Enums import StripColor, StripMode, StripState
 
 
 class Setting(BaseModel):
-    color: StripColor | None = None
+    state: StripState = StripState.OFF
+    color: StripColor | None = StripColor.WHITE
     mode: StripMode = StripMode.RAINBOW
-    brightness: StripBrightness | int = 100
-
-    @field_validator("brightness")
-    @classmethod
-    def validate_brightness(cls, v: int) -> int:
-        return max(0, min(100, v))
+    brightness: int = Field(default=100, ge=0, le=100)
 
     @model_validator(mode="after")
     def validate_all_fields(self) -> "Setting":
