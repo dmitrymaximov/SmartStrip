@@ -27,7 +27,8 @@ setting = Setting()
 
 @app.websocket("/ws/{client_id}")
 async def websocket_endpoint(websocket: WebSocket, client_id: str):
-    await websocket.accept()
+    await websocket.accept(headers={"Access-Control-Allow-Origin": "*"})
+
     active_connections.add(websocket)
     print(f"New connection added: {websocket}")
     try:
