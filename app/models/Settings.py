@@ -11,7 +11,7 @@ class Setting(BaseModel):
 
     @model_validator(mode="after")
     def validate_all_fields(self) -> "Setting":
-        if self.mode in [StripMode.SOLID_COLOR] and self.color is None:
+        if self.mode in [StripMode.SOLID] and self.color is None:
             self.color = StripColor.WHITE
 
         if self.mode in [StripMode.RAINBOW]:

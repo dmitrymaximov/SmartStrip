@@ -27,10 +27,12 @@ setting = Setting()
 
 @app.websocket("/ws/{client_id}")
 async def websocket_endpoint(websocket: WebSocket, client_id: str):
-    await websocket.accept(headers={"Access-Control-Allow-Origin": "*"})
+    # Принимаем соединение с правильными заголовками
+    await websocket.accept()
 
     active_connections.add(websocket)
     print(f"New connection added: {websocket}")
+
     try:
         while True:
             data = await websocket.receive_text()
@@ -51,7 +53,7 @@ async def send_command_to_esp32(command: str):
 @app.post("/send-command/{client_id}")
 async def send_command(client_id: str, command: str):
     await send_command_to_esp32(f"{client_id}:{command}")
-    return {"status": "command sent"}
+    return {"status": "ok", "msg": f"sent command: {command}"}
 
 
 @app.get("/")
@@ -67,6 +69,7 @@ async def color() -> StripColor:
 @app.post("/color", tags=["color"])
 async def set_color(new_color: StripColor):
     setting.color = new_color
+    await send_command_to_esp32(setting.color)
     return {"success": True, "msg": "color updated"}
 
 
@@ -118,6 +121,7 @@ async def set_settings(new_settings: Setting):
 @app.post("/debug-led/{new_state}", tags=["debug"])
 async def set_debug_led(new_state: bool):
     command = "led_on" if new_state else "led_off"
+    print(command)
     await send_command_to_esp32(command)
     return {"success": True, "msg": "debug message sent"}
 
