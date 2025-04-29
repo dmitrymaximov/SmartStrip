@@ -2,7 +2,6 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 
 import uvicorn
-import asyncio
 
 from app.models.Settings import Setting
 from app.models.Enums import StripColor, StripState, StripMode
@@ -27,7 +26,6 @@ setting = Setting()
 
 @app.websocket("/ws/{client_id}")
 async def websocket_endpoint(websocket: WebSocket, client_id: str):
-    # Принимаем соединение с правильными заголовками
     await websocket.accept()
 
     active_connections.add(websocket)
@@ -92,6 +90,7 @@ async def mode() -> StripMode:
 @app.post("/mode", tags=["mode"])
 async def set_mode(new_mode: StripMode):
     setting.mode = new_mode
+    await send_command_to_esp32(setting.mode)
     return {"success": True, "msg": "mode updated"}
 
 
@@ -102,7 +101,8 @@ async def state() -> StripState:
 
 @app.post("/state", tags=["state"])
 async def set_state(new_state: StripState):
-    setting.stat = new_state
+    setting.state = new_state
+    await send_command_to_esp32(setting.state)
     return {"success": True, "msg": "state updated"}
 
 
