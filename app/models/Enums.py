@@ -1,30 +1,44 @@
 from enum import Enum
 
 
+class StripCommand(str, Enum):
+    TEST = "TEST"
+    STATE = "STATE"
+    MODE = "MODE"
+    COLOR = "COLOR"
+    BRIGHT = "BRIGHT"
+    BRIGHT_MAX = "BRIGHT_MAX"
+
+
 class StripState(str, Enum):
-    OFF = "S00"
-    ON = "S01"
+    OFF = "OFF"
+    ON = "ON"
 
 
 class StripMode(str, Enum):
-    BREATH = "M01"
-    RAINBOW = "M02"
-    RUNNER = "M03"
-    SOLID = "M04"
-    FIRE = "M05"
+    BREATH = "BREATH"
+    RAINBOW = "RAINBOW"
+    RUNNER = "RUNNER"
+    SOLID = "SOLID"
+    FIRE = "FIRE"
 
 
 class StripColor(str, Enum):
-    RED = "C01"
-    ORANGE = "C02"
-    YELLOW = "C03"
-    GREEN = "C04"
-    AZURE = "C05"
-    BLUE = "C06"
-    WHITE = "C07"
-    PURPLE = "C08"
-    PINK = "C09"
-    TURQUOISE = "C10"
+    RED = "RED"
+    ORANGE = "ORANGE"
+    YELLOW = "YELLOW"
+    GREEN = "GREEN"
+    AZURE = "AZURE"
+    BLUE = "BLUE"
+    WHITE = "WHITE"
+    PURPLE = "PURPLE"
+    PINK = "PINK"
+    TURQUOISE = "TURQUOISE"
+
+
+class StripTest(str, Enum):
+    OFF = "OFF"
+    ON = "ON"
 
 
 class StripBrightness(int, Enum):

@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 
 from app.models.Settings import Setting
-from app.models.Enums import StripColor, StripState, StripMode
+from app.models.Enums import StripColor, StripState, StripMode, StripCommand, StripTest, StripBrightness
 from app.config import load_config
 
 
@@ -59,50 +59,57 @@ async def root():
     return {"ok": True}
 
 
-@app.get("/color", tags=["color"])
+@app.get("/color", tags=["get"])
 async def color() -> StripColor:
     return setting.color
 
 
-@app.post("/color", tags=["color"])
+@app.post("/color", tags=["post"])
 async def set_color(new_color: StripColor):
     setting.color = new_color
-    await send_command_to_esp32(setting.color)
+    await send_command_to_esp32(f"{StripCommand.COLOR}:{setting.color}")
     return {"success": True, "msg": "color updated"}
 
 
-@app.get("/brightness", tags=["brightness"])
+@app.get("/brightness", tags=["get"])
 async def brightness() -> int:
     return setting.brightness
 
 
-@app.post("/brightness", tags=["brightness"])
+@app.post("/brightness", tags=["post"])
 async def set_brightness(new_brightness: int):
     setting.brightness = new_brightness
+    await send_command_to_esp32(f"{StripCommand.BRIGHT}:{setting.brightness}")
+    return {"success": True, "msg": "brightness updated"}
+
+@app.post("/brightness_max", tags=["post"])
+async def set_brightness_max(new_brightness: int):
+    setting.brightnessMax = new_brightness
+    await send_command_to_esp32(f"{StripCommand.BRIGHT_MAX}:{setting.brightnessMax}")
     return {"success": True, "msg": "brightness updated"}
 
 
-@app.get("/mode", tags=["mode"])
+@app.get("/mode", tags=["get"])
 async def mode() -> StripMode:
     return setting.mode
 
 
-@app.post("/mode", tags=["mode"])
+@app.post("/mode", tags=["post"])
 async def set_mode(new_mode: StripMode):
     setting.mode = new_mode
-    await send_command_to_esp32(setting.mode)
+    await send_command_to_esp32(f"{StripCommand.MODE}:{setting.mode}")
     return {"success": True, "msg": "mode updated"}
 
 
-@app.get("/state", tags=["state"])
+@app.get("/state", tags=["get"])
 async def state() -> StripState:
     return setting.state
 
 
-@app.post("/state", tags=["state"])
+@app.post("/state", tags=["post"])
 async def set_state(new_state: StripState):
     setting.state = new_state
-    await send_command_to_esp32(setting.state)
+    await send_command_to_esp32(f"{StripCommand.STATE}:{setting.state}")
     return {"success": True, "msg": "state updated"}
 
 
@@ -118,11 +125,9 @@ async def set_settings(new_settings: Setting):
     return {"success": True, "msg": f"settings updated to {setting}"}
 
 
-@app.post("/debug-led/{new_state}", tags=["debug"])
-async def set_debug_led(new_state: bool):
-    command = "led_on" if new_state else "led_off"
-    print(command)
-    await send_command_to_esp32(command)
+@app.post("/test/", tags=["post"])
+async def set_debug_led(new_state: StripTest):
+    await send_command_to_esp32(f"{StripCommand.TEST}:{new_state}")
     return {"success": True, "msg": "debug message sent"}
 
 
