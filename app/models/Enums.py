@@ -39,9 +39,3 @@ class StripColor(str, Enum):
 class StripTest(str, Enum):
     OFF = "OFF"
     ON = "ON"
-
-
-class StripBrightness(int, Enum):
-    DIMLY = 25
-    MEDIUM = 50
-    BRIGHT = 100

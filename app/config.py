@@ -6,7 +6,9 @@ from environs import Env
 
 @dataclass
 class Config:
-    max_brightness: int
+    login: str
+    password: str
+    api_key: str
 
 
 def load_config(path: str = None) -> Config:
@@ -14,7 +16,9 @@ def load_config(path: str = None) -> Config:
     env.read_env(Path(__file__).parent.parent / ".env")
 
     return Config(
-        max_brightness=env("MAX_BRIGHTNESS")
+        login=env("LOGIN"),
+        password=env("PASSWORD"),
+        api_key=env("API_KEY")
     )
 
 
