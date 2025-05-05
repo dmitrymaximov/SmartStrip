@@ -21,6 +21,7 @@ class StripMode(str, Enum):
     RUNNER = "RUNNER"
     SOLID = "SOLID"
     FIRE = "FIRE"
+    MUSIC = "MUSIC"
 
 
 class StripColor(str, Enum):

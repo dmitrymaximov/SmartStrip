@@ -10,7 +10,7 @@ from fastapi.middleware.httpsredirect import HTTPSRedirectMiddleware
 import uvicorn
 import secrets
 
-from app.models.Settings import Setting
+from app.models.Settings import Device
 from app.models.Enums import StripColor, StripState, StripMode, StripCommand, StripTest
 from app.models.Device import DeviceAction, DevicesRequest, UnlinkRequest
 from app.config import load_config
@@ -35,7 +35,7 @@ app.add_middleware(
 
 active_connections = set()
 config = load_config()
-setting = Setting()
+device = Device()
 
 def verify_auth(credentials: HTTPBasicCredentials = Depends(security)):
     correct_username = secrets.compare_digest(credentials.username, config.login)
@@ -114,58 +114,58 @@ async def get_docs(auth: bool = Depends(verify_auth)):
 
 @app.get("/color", tags=["get"])
 async def color(auth: bool = Depends(verify_auth)) -> StripColor:
-    return setting.color
+    return device.color
 
 
 @app.post("/color", tags=["post"])
 async def set_color(new_color: StripColor, api_key: str = Depends(verify_api_key)):
-    setting.color = new_color
-    await send_command_to_esp32(f"{StripCommand.COLOR}:{setting.color}")
+    device.color = new_color
+    await send_command_to_esp32(f"{StripCommand.COLOR}:{device.color}")
     return {"success": True, "msg": "color updated"}
 
 
 @app.get("/brightness_max", tags=["get"])
 async def brightness(auth: bool = Depends(verify_auth)) -> int:
-    return setting.brightnessMax
+    return device.brightnessMax
 
 
 @app.post("/brightness_max", tags=["post"])
 async def set_brightness_max(new_brightness: int, api_key: str = Depends(verify_api_key)):
-    setting.brightnessMax = new_brightness
-    await send_command_to_esp32(f"{StripCommand.BRIGHT_MAX}:{setting.brightnessMax}")
+    device.brightnessMax = new_brightness
+    await send_command_to_esp32(f"{StripCommand.BRIGHT_MAX}:{device.brightnessMax}")
     return {"success": True, "msg": "brightness updated"}
 
 
 @app.get("/mode", tags=["get"])
 async def mode(auth: bool = Depends(verify_auth)) -> StripMode:
-    return setting.mode
+    return device.mode
 
 
 @app.post("/mode", tags=["post"])
 async def set_mode(new_mode: StripMode, api_key: str = Depends(verify_api_key)):
-    setting.mode = new_mode
-    await send_command_to_esp32(f"{StripCommand.MODE}:{setting.mode}")
+    device.mode = new_mode
+    await send_command_to_esp32(f"{StripCommand.MODE}:{device.mode}")
     return {"success": True, "msg": "mode updated"}
 
 
 @app.get("/state", tags=["get"])
 async def state(auth: bool = Depends(verify_auth)) -> StripState:
-    return setting.state
+    return device.state
 
 
 @app.post("/state", tags=["post"])
 async def set_state(new_state: StripState, api_key: str = Depends(verify_api_key)):
-    setting.state = new_state
-    await send_command_to_esp32(f"{StripCommand.STATE}:{setting.state}")
+    device.state = new_state
+    await send_command_to_esp32(f"{StripCommand.STATE}:{device.state}")
     return {"success": True, "msg": "state updated"}
 
 
 @app.get("/test", tags=["get"])
 async def test(auth: bool = Depends(verify_auth)) -> StripTest:
-    return setting.test
+    return device.test
 
 
-@app.post("/test/", tags=["post"])
+@app.post("/test", tags=["post"])
 async def set_debug_led(new_state: StripTest, api_key: str = Depends(verify_api_key)):
     await send_command_to_esp32(f"{StripCommand.TEST}:{new_state}")
     return {"success": True, "msg": "debug message sent"}
@@ -187,21 +187,13 @@ async def get_devices(request: Request):
         "request_id": request.query_params.get("request_id"),
         "devices": [
             {
-                "id": "led-strip-1",
-                "name": "Умная лента",
+                "id": device.id,
+                "name": device.name,
                 "type": "devices.types.light",
                 "capabilities": [
                     {
                         "type": "devices.capabilities.on_off",
                         "retrievable": True
-                    },
-                    {
-                        "type": "devices.capabilities.color_setting",
-                        "retrievable": True,
-                        "parameters": {
-                            "color_model": "rgb",
-                            "temperature_k": {"min": 1000, "max": 9000}
-                        }
                     },
                     {
                         "type": "devices.capabilities.range",
@@ -224,7 +216,7 @@ async def query_devices(request: dict):
     return {
         "devices": [
             {
-                "id": "led-strip-1",
+                "id": device.id,
                 "capabilities": [
                     {"type": "devices.capabilities.on_off", "state": {"instance": "on", "value": True}},
                     {"type": "devices.capabilities.color_setting", "state": {"instance": "rgb", "value": 65280}},
@@ -250,30 +242,14 @@ async def handle_action(request: dict):
     # Отправка команд на устройство
     for action in actions:
         if action["capability"] == "devices.capabilities.on_off":
-            await send_to_device(
-                action["device_id"],
-                {"command": "power", "value": "on" if action["state"]["value"] else "off"}
-            )
-
-        elif action["capability"] == "devices.capabilities.color_setting":
-            await send_to_device(
-                action["device_id"],
-                {"command": "color", "value": action["state"]["value"]}
-            )
-
-        elif action["capability"] == "devices.capabilities.range":
-            if action["state"]["instance"] == "brightness":
-                await send_to_device(
-                    action["device_id"],
-                    {"command": "brightness", "value": action["state"]["value"]}
-                )
+            await send_command_to_esp32(f"{StripCommand.STATE}:OFF")
 
     return {"devices": request["payload"]["devices"]}
 
 
 async def get_current_user(token: str = Depends(oauth2_scheme)):
     # Ваша логика проверки токена
-    return user
+    return
 
 if __name__ == "__main__":
     uvicorn.run("main:app",
