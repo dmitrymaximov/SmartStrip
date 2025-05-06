@@ -249,6 +249,7 @@ async def handle_action(request: dict):
 
 async def get_current_user(token: str = Depends(oauth2_scheme)):
     # Ваша логика проверки токена
+    # sdf
     return
 
 if __name__ == "__main__":
