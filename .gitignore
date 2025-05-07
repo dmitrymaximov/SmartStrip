@@ -1,0 +1,4 @@
+/ssl/cert.pem
+/ssl/key.pem
+/.venv/
+/.env
