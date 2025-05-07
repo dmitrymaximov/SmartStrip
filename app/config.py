@@ -9,6 +9,8 @@ class Config:
     login: str
     password: str
     api_key: str
+    client_id: str
+    client_secret: str
 
 
 def load_config(path: str = None) -> Config:
@@ -18,7 +20,9 @@ def load_config(path: str = None) -> Config:
     return Config(
         login=env("LOGIN"),
         password=env("PASSWORD"),
-        api_key=env("API_KEY")
+        api_key=env("API_KEY"),
+        client_id=env("CLIENT_ID"),
+        client_secret=env("CLIENT_SECRET")
     )
 
 

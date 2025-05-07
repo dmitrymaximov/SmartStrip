@@ -1,19 +1,28 @@
-from fastapi import (FastAPI, WebSocket, WebSocketDisconnect, Depends, HTTPException, status,
-                     Header, Response, Request)
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends, HTTPException, status
+from fastapi import Header, Response, Request
 from fastapi.security import  HTTPBasic, HTTPBasicCredentials, OAuth2AuthorizationCodeBearer
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.httpsredirect import HTTPSRedirectMiddleware
 
+from typing import Dict, List, Any
+from pydantic import BaseModel
 
 import uvicorn
 import secrets
+import httpx
 
-from app.models.Settings import Device
+from app.models.Device import Device, Capability, DeviceInfo, init_device_registry
+from app.models.User import User, init_user_cache
 from app.models.Enums import StripColor, StripState, StripMode, StripCommand, StripTest
-from app.models.Device import DeviceAction, DevicesRequest, UnlinkRequest
 from app.config import load_config
+
+
+
+YANDEX_USERINFO_URL = "https://login.yandex.ru/info"
+YANDEX_USERINFO_JSON_URL = "https://login.yandex.ru/info?format=json"
+YANDEX_TOKEN_URL = "https://oauth.yandex.ru/token"
 
 
 app = FastAPI(redoc_url=None, debug=True, docs_url=None)
@@ -32,14 +41,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
 active_connections = set()
-config = load_config()
-device = Device()
+users_cache = init_user_cache()
+app_config = load_config()
+devices_registry: Dict[str, Device] = init_device_registry()
 
-def verify_auth(credentials: HTTPBasicCredentials = Depends(security)):
-    correct_username = secrets.compare_digest(credentials.username, config.login)
-    correct_password = secrets.compare_digest(credentials.password, config.password)
+def verify_basic_auth(credentials: HTTPBasicCredentials = Depends(security)):
+    correct_username = secrets.compare_digest(credentials.username, app_config.login)
+    correct_password = secrets.compare_digest(credentials.password, app_config.password)
     if not (correct_username and correct_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -50,7 +59,7 @@ def verify_auth(credentials: HTTPBasicCredentials = Depends(security)):
 
 
 async def verify_api_key(api_key: str = Header(..., alias="X-API-Key")):
-    if api_key != config.api_key:
+    if api_key != app_config.api_key:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Invalid API Key"
@@ -60,10 +69,47 @@ async def verify_api_key(api_key: str = Header(..., alias="X-API-Key")):
 
 async def verify_websocket(websocket: WebSocket):
     api_key = websocket.headers.get("X-API-Key")
-    if api_key != config.api_key:
+    if api_key != app_config.api_key:
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
         return False
     return True
+
+
+async def check_token(authorization: str = Header(...)) -> User:
+    token = authorization.removeprefix("Bearer ").strip()
+    user = next((u for u in users_cache.values() if u.access_token == token), None)
+
+    if user:
+        if user.is_token_valid():
+            return user
+
+        refreshed = await user.refresh(app_config.client_id, app_config.client_secret)
+        if refreshed:
+            return user
+
+        users_cache.pop(user.user_id, None)
+
+    # Токена в кеше нет — проверяем через Яндекс
+    async with httpx.AsyncClient() as client:
+        resp = await client.get(
+            YANDEX_USERINFO_URL,
+            headers={"Authorization": f"OAuth {token}"}
+        )
+
+        if resp.status_code != status.HTTP_200_OK:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+
+        userinfo = resp.json()
+
+    expires_in = int(userinfo.get("expires_in", 3600))
+    new_user = User.from_token_response(
+        token=token,
+        expires_in=expires_in,
+        userinfo=userinfo
+    )
+
+    users_cache[new_user.user_id] = new_user
+    return new_user
 
 
 @app.websocket("/ws/{client_id}")
@@ -100,12 +146,12 @@ async def send_command(client_id: str, command: str, api_key: str = Depends(veri
 
 
 @app.get("/")
-async def root(auth: bool = Depends(verify_auth)):
+async def root(auth: bool = Depends(verify_basic_auth)):
     return {"message": f"Hi"}
 
 
 @app.get("/docs", response_class=HTMLResponse)
-async def get_docs(auth: bool = Depends(verify_auth)):
+async def get_docs(auth: bool = Depends(verify_basic_auth)):
     return get_swagger_ui_html(
         openapi_url="/openapi.json",
         title="Swagger Docs"
@@ -113,7 +159,7 @@ async def get_docs(auth: bool = Depends(verify_auth)):
 
 
 @app.get("/color", tags=["get"])
-async def color(auth: bool = Depends(verify_auth)) -> StripColor:
+async def color(auth: bool = Depends(verify_basic_auth)) -> StripColor:
     return device.color
 
 
@@ -125,7 +171,7 @@ async def set_color(new_color: StripColor, api_key: str = Depends(verify_api_key
 
 
 @app.get("/brightness_max", tags=["get"])
-async def brightness(auth: bool = Depends(verify_auth)) -> int:
+async def brightness(auth: bool = Depends(verify_basic_auth)) -> int:
     return device.brightnessMax
 
 
@@ -137,7 +183,7 @@ async def set_brightness_max(new_brightness: int, api_key: str = Depends(verify_
 
 
 @app.get("/mode", tags=["get"])
-async def mode(auth: bool = Depends(verify_auth)) -> StripMode:
+async def mode(auth: bool = Depends(verify_basic_auth)) -> StripMode:
     return device.mode
 
 
@@ -149,7 +195,7 @@ async def set_mode(new_mode: StripMode, api_key: str = Depends(verify_api_key)):
 
 
 @app.get("/state", tags=["get"])
-async def state(auth: bool = Depends(verify_auth)) -> StripState:
+async def state(auth: bool = Depends(verify_basic_auth)) -> StripState:
     return device.state
 
 
@@ -161,7 +207,7 @@ async def set_state(new_state: StripState, api_key: str = Depends(verify_api_key
 
 
 @app.get("/test", tags=["get"])
-async def test(auth: bool = Depends(verify_auth)) -> StripTest:
+async def test(auth: bool = Depends(verify_basic_auth)) -> StripTest:
     return device.test
 
 
@@ -177,80 +223,137 @@ async def health_check():
 
 
 @app.post("/smart-strip/v1.0/user/unlink")
-async def unlink_user(request: UnlinkRequest):
-    return {"request_id": request.request_id}
+async def unlink_user(request: Request, user: User = Depends(check_token)):
+    users_cache.pop(user.user_id, None)
+    request_id = request.headers.get("X-Request-Id")
+    return {
+        "request_id": request_id
+    }
 
 
 @app.get("/smart-strip/v1.0/user/devices")
-async def get_devices(request: Request):
-    return {
-        "request_id": request.query_params.get("request_id"),
-        "devices": [
-            {
-                "id": device.id,
-                "name": device.name,
-                "type": "devices.types.light",
-                "capabilities": [
-                    {
-                        "type": "devices.capabilities.on_off",
-                        "retrievable": True
-                    },
-                    {
-                        "type": "devices.capabilities.range",
-                        "retrievable": True,
-                        "parameters": {
-                            "instance": "brightness",
-                            "unit": "unit.percent",
-                            "range": {"min": 0, "max": 100}
-                        }
-                    }
-                ]
-            }
-        ]
-    }
+async def get_devices(request: Request, user: User = Depends(check_token)):
+    request_id = request.headers.get("X-Request-Id")
+    user_id = user.user_id
+    all_devices = list(devices_registry.values())
 
+    return {
+        "request_id": request_id,
+        "payload": {
+            "user_id": user_id,
+            "devices": all_devices
+        }
+    }
+    #return JSONResponse(status_code=status.HTTP_200_OK, content=content)
+
+
+# Модель запроса для удобства
+class QueryRequest(BaseModel):
+    devices: List[Dict[str, str]]  # каждый элемент: {"id": "<device_id>"}
 
 @app.post("/smart-strip/v1.0/user/devices/query")
-async def query_devices(request: dict):
-    # Запрос актуального состояния из вашей системы
-    return {
-        "devices": [
-            {
-                "id": device.id,
-                "capabilities": [
-                    {"type": "devices.capabilities.on_off", "state": {"instance": "on", "value": True}},
-                    {"type": "devices.capabilities.color_setting", "state": {"instance": "rgb", "value": 65280}},
-                    {"type": "devices.capabilities.range", "state": {"instance": "brightness", "value": 70}}
-                ]
-            }
-        ]
-    }
+async def query_devices(request: Request, body: QueryRequest, user: User = Depends(check_token)):
+    request_id = request.headers.get("X-Request-Id")
 
+    response_devices = []
+    for item in body.devices:
+        device = devices_registry.get(item["id"])
+        if not device:
+            continue  # или можно вернуть ошибку 404 для этого device_id
 
-# POST /smart-strip/v1.0/user/devices/action
-@app.post("/smart-strip/v1.0/user/devices/action")
-async def handle_action(request: dict):
-    actions = []
-    for device in request["payload"]["devices"]:
-        for capability in device["capabilities"]:
-            actions.append({
-                "device_id": device["id"],
-                "capability": capability["type"],
-                "state": capability["state"]
+        # Собираем список capabilities с текущим состоянием
+        capabilities = []
+        for cap in device.capabilities:
+            # определяем instance и value
+            if cap.type == "devices.capabilities.on_off":
+                instance = "on"
+            else:
+                # для range и подобных — берём instance из parameters
+                instance = cap.parameters["instance"]  # e.g. "brightness"
+
+            value = device.state.get(instance)
+            capabilities.append({
+                "type": cap.type,
+                "state": {
+                    "instance": instance,
+                    "value": value
+                }
             })
 
-    # Отправка команд на устройство
-    for action in actions:
-        if action["capability"] == "devices.capabilities.on_off":
-            await send_command_to_esp32(f"{StripCommand.STATE}:OFF")
+        response_devices.append({
+            "id": device.id,
+            "capabilities": capabilities
+        })
 
-    return {"devices": request["payload"]["devices"]}
+    content = {
+        "request_id": request_id,
+        "payload": {
+            "devices": response_devices
+        }
+    }
+    return JSONResponse(status_code=status.HTTP_200_OK, content=content)
 
 
-async def get_current_user(token: str = Depends(oauth2_scheme)):
-    # Ваша логика проверки токена
-    # sdf
-    return
+class ActionCapabilityState(BaseModel):
+    instance: str
+    value: Any
+
+class ActionCapability(BaseModel):
+    type: str
+    state: ActionCapabilityState
+
+class ActionDevice(BaseModel):
+    id: str
+    capabilities: List[ActionCapability]
+
+class ActionRequest(BaseModel):
+    devices: List[ActionDevice]
+
+
+@app.post("/smart-strip/v1.0/user/devices/action")
+async def action_devices(request: Request, body: ActionRequest, user: User = Depends(check_token)):
+    request_id = request.headers.get("X-Request-Id")
+    response_devices = []
+
+    for action_dev in body.devices:
+        # находим устройство в реестре
+        dev = devices_registry.get(action_dev.id)
+        if not dev:
+            continue
+
+        caps_result = []
+        for cap in action_dev.capabilities:
+            inst = cap.state.instance
+            val = cap.state.value
+
+            # изменяем локальное состояние устройства
+            dev.state[inst] = val
+
+            # формируем результат для этого capability
+            caps_result.append({
+                "type": cap.type,
+                "state": {
+                    "instance": inst,
+                    "action_result": {
+                        "status": "DONE"
+                    }
+                }
+            })
+
+        response_devices.append({
+            "id": dev.id,
+            "capabilities": caps_result
+        })
+
+    content = {
+        "request_id": request_id,
+        "payload": {
+            "devices": response_devices
+        }
+    }
+    return JSONResponse(status_code=status.HTTP_200_OK, content=content)
+
+
 
 if __name__ == "__main__":
     uvicorn.run("main:app",
