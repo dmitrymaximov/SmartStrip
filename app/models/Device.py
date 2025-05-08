@@ -37,13 +37,14 @@ def init_device_registry() -> Dict[str, Device]:
         capabilities=[
             Capability(
                 type="devices.capabilities.on_off",
-                retrievable=True),
+                retrievable=True,
+                parameters={}
+            ),
             Capability(
                 type="devices.capabilities.range",
                 retrievable=True,
                 parameters={
                     "instance": "brightness",
-                    "unit": "percent",
                     "range": {"min": 1, "max": 100, "precision": 1}
                 }
             )
