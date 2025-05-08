@@ -108,7 +108,34 @@ async def action_devices(request: Request, body: ActionRequest, user: User = Dep
                         "action_result": {"status": "DONE"}
                     }
                 })
+            elif inst == "scene":
+                supported_modes = {"static", "rainbow", "police"}
+                if val not in supported_modes:
+                    caps_result.append({
+                        "type": cap.type,
+                        "state": {
+                            "instance": inst,
+                            "action_result": {
+                                "status": "ERROR",
+                                "error_code": "INVALID_VALUE",
+                                "error_message": f"Unsupported mode {val}"
+                            }
+                        }
+                    })
+                    continue
 
+                dev.state[inst] = val
+                await update_mode(mode=val, device=dev)  # твоя логика применения режима
+
+                caps_result.append({
+                    "type": cap.type,
+                    "state": {
+                        "instance": inst,
+                        "action_result": {
+                            "status": "DONE"
+                        }
+                    }
+                })
             else:
                 # handle other capabilities like brightness if applicable
                 print(f"Unsupported capability instance: {inst} for device {dev.id}")

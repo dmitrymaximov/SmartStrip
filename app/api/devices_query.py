@@ -35,6 +35,8 @@ async def devices_query(request: Request, body: QueryRequest, user: User = Depen
             elif cap.type == "devices.capabilities.range":
                 # для range и подобных — берём instance из parameters
                 instance = cap.parameters.get("instance")  # e.g. "brightness"
+            elif cap.type == "devices.capabilities.mode":
+                instance = cap.parameters.get("instance")
 
             if not instance:
                 continue

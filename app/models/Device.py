@@ -79,18 +79,23 @@ def init_device_registry() -> Dict[str, Device]:
                 }
             ),
             Capability(
-                type="devices.capabilities.color_setting",
+                type="devices.capabilities.mode",
                 retrievable=True,
                 parameters={
-                    "color_model": "rgb",
-                    "supported_colors": [1, 2, 3]
+                    "instance": "scene",
+                    "modes": [
+                        {"value": "static", "name": {"ru": "Статичный"}},
+                        {"value": "rainbow", "name": {"ru": "Радуга"}},
+                        {"value": "police", "name": {"ru": "Полиция"}}
+                    ]
                 }
             )
         ],
         device_info=DeviceInfo(manufacturer="Maxs", model="Strip", hw_version="1.0", sw_version="1.0"),
         state={
             "on": True,
-            "brightness": 100
+            "brightness": 100,
+            "scene": "static"
         }
     )}
     return devices
