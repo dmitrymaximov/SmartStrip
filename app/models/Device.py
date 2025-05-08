@@ -82,11 +82,18 @@ def init_device_registry() -> Dict[str, Device]:
                 type="devices.capabilities.mode",
                 retrievable=True,
                 parameters={
-                    "instance": "scene",
+                    "instance": "program",
                     "modes": [
-                        {"value": "static", "name": {"ru": "Статичный"}},
-                        {"value": "rainbow", "name": {"ru": "Радуга"}},
-                        {"value": "police", "name": {"ru": "Полиция"}}
+                        {"value": "one", "name": {"ru": "Один"}},
+                        {"value": "two", "name": {"ru": "Два"}},
+                        {"value": "three", "name": {"ru": "Три"}},
+                        {"value": "four", "name": {"ru": "Четыре"}},
+                        {"value": "five", "name": {"ru": "Пять"}},
+                        {"value": "six", "name": {"ru": "Шесть"}},
+                        {"value": "seven", "name": {"ru": "Семь"}},
+                        {"value": "eight", "name": {"ru": "Восемь"}},
+                        {"value": "nine", "name": {"ru": "Девять"}},
+                        {"value": "ten", "name": {"ru": "Десять"}}
                     ]
                 }
             )
@@ -95,7 +102,7 @@ def init_device_registry() -> Dict[str, Device]:
         state={
             "on": True,
             "brightness": 100,
-            "scene": "static"
+            "program": "one"
         }
     )}
     return devices

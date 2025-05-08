@@ -55,21 +55,8 @@ async def action_devices(request: Request, body: ActionRequest, user: User = Dep
 
             if inst == "on":
                 if val not in [True, False]:
-                    print(f"Invalid value for {inst} on device {dev.id}")
-                    caps_result.append({
-                        "type": cap.type,
-                        "state": {
-                            "instance": inst,
-                            "action_result": {
-                                "status": "ERROR",
-                                "error_code": "INVALID_VALUE",
-                                "error_message": f"Invalid value {val} for {inst}"
-                            }
-                        }
-                    })
                     continue
 
-                # изменяем локальное состояние устройства
                 dev.state[inst] = val
                 await update_state(new_state=val, device=dev)
 
@@ -85,17 +72,6 @@ async def action_devices(request: Request, body: ActionRequest, user: User = Dep
                 })
             elif inst == "brightness":
                 if not isinstance(val, int) or not (0 <= val <= 100):
-                    caps_result.append({
-                        "type": cap.type,
-                        "state": {
-                            "instance": inst,
-                            "action_result": {
-                                "status": "ERROR",
-                                "error_code": "INVALID_VALUE",
-                                "error_message": f"Expected int 0-100 for {inst}, got {val}"
-                            }
-                        }
-                    })
                     continue
 
                 dev.state[inst] = val
@@ -108,34 +84,18 @@ async def action_devices(request: Request, body: ActionRequest, user: User = Dep
                         "action_result": {"status": "DONE"}
                     }
                 })
-            elif inst == "scene":
-                supported_modes = {"static", "rainbow", "police"}
-                if val not in supported_modes:
-                    caps_result.append({
-                        "type": cap.type,
-                        "state": {
-                            "instance": inst,
-                            "action_result": {
-                                "status": "ERROR",
-                                "error_code": "INVALID_VALUE",
-                                "error_message": f"Unsupported mode {val}"
-                            }
-                        }
-                    })
+            elif inst == "program":
+                if val not in ["one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"]:
                     continue
-
-                dev.state[inst] = val
-                await update_mode(mode=val, device=dev)  # твоя логика применения режима
 
                 caps_result.append({
                     "type": cap.type,
                     "state": {
                         "instance": inst,
-                        "action_result": {
-                            "status": "DONE"
-                        }
+                        "action_result": {"status": "DONE"}
                     }
                 })
+
             else:
                 # handle other capabilities like brightness if applicable
                 print(f"Unsupported capability instance: {inst} for device {dev.id}")
