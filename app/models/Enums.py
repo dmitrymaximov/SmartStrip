@@ -6,7 +6,6 @@ class StripCommand(str, Enum):
     STATE = "STATE"
     MODE = "MODE"
     COLOR = "COLOR"
-    BRIGHT = "BRIGHT"
     BRIGHT_MAX = "BRIGHT_MAX"
 
 

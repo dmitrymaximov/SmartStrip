@@ -54,13 +54,16 @@ class User(BaseModel):
 
 
 def init_user_cache(with_test_user: bool = True):
-    users_cache: dict[str, User] = {}
+    users: dict[str, User] = {}
 
-    user_id = "0"
-    access_token = "8c0a8abb-b384-406b-b65c-5404de882b91"
+    user_id = "541998514"
+    access_token = "y0__xCy-7iCAhiKwzcgsZmFghNtskQ8MzK1OYz-cOTd-ZrtOGiw9A"
     expires_at =  datetime.now(timezone.utc) + timedelta(seconds=10000)
 
     user = User(user_id=user_id, access_token=access_token, expires_at=expires_at)
-    users_cache[user.user_id] = user
+    users[user.user_id] = user
 
-    return users_cache
+    return users
+
+
+users_cache = init_user_cache()

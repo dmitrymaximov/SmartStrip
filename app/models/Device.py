@@ -28,9 +28,16 @@ class Device(BaseModel):
     # Здесь храним текущее состояние — ключи совпадают с instance в capabilities
     state: Dict[str, Any] = Field(default_factory=dict)
 
+    def get_state(self):
+        return self.state["on"]
+
+    def update_state(self, new_state: bool):
+        self.state["on"] = new_state
+
+
 
 def init_device_registry() -> Dict[str, Device]:
-    devices_registry: Dict[str, Device] = {"smart_strip": Device(
+    devices: Dict[str, Device] = {"smart_strip": Device(
         id="smart_strip",
         name="Умная лента",
         device_type="devices.types.light",
@@ -39,17 +46,12 @@ def init_device_registry() -> Dict[str, Device]:
                 type="devices.capabilities.on_off",
                 retrievable=True,
                 parameters={}
-            ),
-            Capability(
-                type="devices.capabilities.range",
-                retrievable=True,
-                parameters={
-                    "instance": "brightness",
-                    "range": {"min": 1, "max": 100, "precision": 1}
-                }
             )
         ],
-        device_info=DeviceInfo(manufacturer="DIY", model="LEDv1", hw_version="1.0", sw_version="1.0"),
-        state={"on": False, "brightness": 50}
+        device_info=DeviceInfo(manufacturer="Maxs", model="Strip", hw_version="1.0", sw_version="1.0"),
+        state={"on": True}
     )}
-    return devices_registry
+    return devices
+
+
+devices_registry: Dict[str, Device] = init_device_registry()

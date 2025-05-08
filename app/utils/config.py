@@ -26,4 +26,4 @@ def load_config(path: str = None) -> Config:
     )
 
 
-config = load_config()
+app_config = load_config()
