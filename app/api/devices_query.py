@@ -18,22 +18,29 @@ async def devices_query(request: Request, body: QueryRequest, user: User = Depen
     request_id = request.headers.get("X-Request-Id")
 
     response_devices = []
+
     for item in body.devices:
         device = devices_registry.get(item["id"])
         if not device:
-            continue  # или можно вернуть ошибку 404 для этого device_id
+            continue
 
-        # Собираем список capabilities с текущим состоянием
         capabilities = []
+
         for cap in device.capabilities:
             # определяем instance и value
+            instance = None
+
             if cap.type == "devices.capabilities.on_off":
                 instance = "on"
-            else:
+            elif cap.type == "devices.capabilities.range":
                 # для range и подобных — берём instance из parameters
-                instance = cap.parameters["instance"]  # e.g. "brightness"
+                instance = cap.parameters.get("instance")  # e.g. "brightness"
+
+            if not instance:
+                continue
 
             value = device.state.get(instance)
+
             capabilities.append({
                 "type": cap.type,
                 "state": {

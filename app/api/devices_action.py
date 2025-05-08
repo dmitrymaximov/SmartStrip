@@ -6,8 +6,7 @@ from typing import List, Dict, Any
 from app.models.User import User
 from app.models.Device import devices_registry
 from app.utils.verification import verify_token
-from app.api.esp_requests import update_state
-
+from app.api.esp_requests import update_state, update_brightness
 
 router = APIRouter()
 
@@ -42,20 +41,18 @@ async def action_devices(request: Request, body: ActionRequest, user: User = Dep
     response_devices = []
 
     for action_dev in body.payload.devices:
-        # находим устройство в реестре
         dev = devices_registry.get(action_dev.id)
         if not dev:
             continue
 
         caps_result = []
+
         for cap in action_dev.capabilities:
             inst = cap.state.instance
             val = cap.state.value
 
-            # логируем приходящие данные
             print(f"Device {dev.id} action: {inst} = {val}")
 
-            # проверяем, можем ли мы применить значение
             if inst == "on":
                 if val not in [True, False]:
                     print(f"Invalid value for {inst} on device {dev.id}")
@@ -86,6 +83,32 @@ async def action_devices(request: Request, body: ActionRequest, user: User = Dep
                         }
                     }
                 })
+            elif inst == "brightness":
+                if not isinstance(val, int) or not (0 <= val <= 100):
+                    caps_result.append({
+                        "type": cap.type,
+                        "state": {
+                            "instance": inst,
+                            "action_result": {
+                                "status": "ERROR",
+                                "error_code": "INVALID_VALUE",
+                                "error_message": f"Expected int 0-100 for {inst}, got {val}"
+                            }
+                        }
+                    })
+                    continue
+
+                dev.state[inst] = val
+                await update_brightness(new_brightness=val, device=dev)
+
+                caps_result.append({
+                    "type": cap.type,
+                    "state": {
+                        "instance": inst,
+                        "action_result": {"status": "DONE"}
+                    }
+                })
+
             else:
                 # handle other capabilities like brightness if applicable
                 print(f"Unsupported capability instance: {inst} for device {dev.id}")

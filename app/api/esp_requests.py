@@ -124,12 +124,14 @@ async def update_state(new_state: bool | StripState, device: Device):
 
 async def update_brightness(new_brightness: int, device: Device):
     command = StripCommand.BRIGHT_MAX
+
+
     value = max(0, min(100, new_brightness))
 
     await send_command_to_esp32(f"{command}:{value}")
     device.update_brightness(value)
 
-    print("device brightness updated")
+    print(f"device brightness updated to {value}")
 
 
 async def update_mode(new_mode: StripMode, device: Device):

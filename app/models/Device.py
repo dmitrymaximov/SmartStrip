@@ -64,10 +64,34 @@ def init_device_registry() -> Dict[str, Device]:
                 type="devices.capabilities.on_off",
                 retrievable=True,
                 parameters={}
+            ),
+            Capability(
+                type="devices.capabilities.range",
+                retrievable=True,
+                parameters={
+                    "instance": "brightness",
+                    "unit": "unit.percent",
+                    "range": {
+                        "min": 0,
+                        "max": 100,
+                        "precision": 1
+                    }
+                }
+            ),
+            Capability(
+                type="devices.capabilities.color_setting",
+                retrievable=True,
+                parameters={
+                    "color_model": "rgb",
+                    "supported_colors": [1, 2, 3]
+                }
             )
         ],
         device_info=DeviceInfo(manufacturer="Maxs", model="Strip", hw_version="1.0", sw_version="1.0"),
-        state={"on": True}
+        state={
+            "on": True,
+            "brightness": 100
+        }
     )}
     return devices
 
