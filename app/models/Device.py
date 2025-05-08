@@ -31,8 +31,26 @@ class Device(BaseModel):
     def get_state(self):
         return self.state["on"]
 
-    def update_state(self, new_state: bool):
-        self.state["on"] = new_state
+    def update_state(self, value: bool):
+        self.state["on"] = value
+
+    def get_brightness(self):
+        pass
+
+    def update_brightness(self, value: Any):
+        pass
+
+    def get_mode(self):
+        pass
+
+    def update_mode(self, value: Any):
+        pass
+
+    def get_color(self):
+        pass
+
+    def update_color(self, value: Any):
+        pass
 
 
 

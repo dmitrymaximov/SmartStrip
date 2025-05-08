@@ -1,4 +1,4 @@
-from fastapi import WebSocket, WebSocketDisconnect, APIRouter, Depends
+from fastapi import WebSocket, WebSocketDisconnect, APIRouter, Depends, status
 
 from app.utils.verification import verify_basic_auth, verify_websocket, verify_api_key
 from app.models.Device import Device, devices_registry
@@ -35,7 +35,7 @@ async def send_command_to_esp32(command: str):
             active_connections.remove(connection)
 
 
-@router.post("/send-command/{client_id}")
+@router.post("/send-command")
 async def send_command(command: str, api_key: str = Depends(verify_api_key)):
     await send_command_to_esp32(f"{command}")
     return {"status": "ok", "msg": f"sent command: {command}"}
@@ -48,9 +48,13 @@ async def color(auth: bool = Depends(verify_basic_auth)) -> StripColor:
 
 @router.post("/color", tags=["esp"])
 async def set_color(new_color: StripColor, api_key: str = Depends(verify_api_key)):
-    device.color = new_color
-    await send_command_to_esp32(f"{StripCommand.COLOR}:{device.color}")
-    return {"success": True, "msg": "color updated"}
+    device = devices_registry["smart_strip"]
+    await update_color(new_color=new_color, device=device)
+
+    return {
+        "status": status.HTTP_200_OK,
+        "msg": "color updated"
+    }
 
 
 @router.get("/brightness_max", tags=["esp"])
@@ -58,11 +62,15 @@ async def brightness(auth: bool = Depends(verify_basic_auth)) -> int:
     pass
 
 
-@router.post("/brightness_max", tags=["esp"])
-async def set_brightness_max(new_brightness: int, api_key: str = Depends(verify_api_key)):
-    device.brightnessMax = new_brightness
-    await send_command_to_esp32(f"{StripCommand.BRIGHT_MAX}:{device.brightnessMax}")
-    return {"success": True, "msg": "brightness updated"}
+@router.post("/brightness", tags=["esp"])
+async def set_brightness(new_brightness: int, api_key: str = Depends(verify_api_key)):
+    device = devices_registry["smart_strip"]
+    await update_brightness(new_brightness=new_brightness, device=device)
+
+    return {
+        "status": status.HTTP_200_OK,
+        "msg": "brightness updated"
+    }
 
 
 @router.get("/mode", tags=["esp"])
@@ -72,16 +80,20 @@ async def mode(auth: bool = Depends(verify_basic_auth)) -> StripMode:
 
 @router.post("/mode", tags=["esp"])
 async def set_mode(new_mode: StripMode, api_key: str = Depends(verify_api_key)):
-    device.mode = new_mode
-    await send_command_to_esp32(f"{StripCommand.MODE}:{device.mode}")
-    return {"success": True, "msg": "mode updated"}
+    device = devices_registry["smart_strip"]
+    await update_mode(new_mode=new_mode, device=device)
+
+    return {
+        "status": status.HTTP_200_OK,
+        "msg": "mode updated"
+    }
 
 
 @router.get("/state", tags=["esp"])
 async def state(auth: bool = Depends(verify_basic_auth)) -> StripState:
     device = devices_registry["smart_strip"]
-    state = StripState.ON if device.get_state() == True else StripState.OFF
-    return state
+    value = StripState.ON if device.get_state() == True else StripState.OFF
+    return value
 
 
 @router.post("/state", tags=["esp"])
@@ -89,7 +101,10 @@ async def set_state(new_state: StripState, api_key: str = Depends(verify_api_key
     device = devices_registry["smart_strip"]
     await update_state(new_state=new_state, device=device)
 
-    return {"success": True, "msg": "state updated"}
+    return {
+        "status": status.HTTP_200_OK,
+        "msg": "state updated"
+    }
 
 
 async def update_state(new_state: bool | StripState, device: Device):
@@ -107,10 +122,30 @@ async def update_state(new_state: bool | StripState, device: Device):
     print("device state updated")
 
 
+async def update_brightness(new_brightness: int, device: Device):
+    command = StripCommand.BRIGHT_MAX
+    value = max(0, min(100, new_brightness))
 
-async def update_brightness():
-    pass
+    await send_command_to_esp32(f"{command}:{value}")
+    device.update_brightness(value)
+
+    print("device brightness updated")
 
 
-async def update_mode():
-    pass
+async def update_mode(new_mode: StripMode, device: Device):
+    command = StripCommand.MODE
+    value = new_mode
+
+    await send_command_to_esp32(f"{command}:{value}")
+    device.update_mode(value)
+
+    print("device mode updated")
+
+
+async def update_color(new_color: StripColor, device: Device):
+    command = StripCommand.COLOR
+
+    await send_command_to_esp32(f"{command}:{new_color}")
+    device.update_mode(new_color)
+
+    print("device color updated")
