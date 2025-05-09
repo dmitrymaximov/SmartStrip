@@ -6,7 +6,7 @@ class StripCommand(str, Enum):
     STATE = "STATE"
     MODE = "MODE"
     COLOR = "COLOR"
-    BRIGHT_MAX = "BRIGHT_MAX"
+    BRIGHTNESS = "BRIGHTNESS"
 
 
 class StripState(str, Enum):
@@ -15,12 +15,12 @@ class StripState(str, Enum):
 
 
 class StripMode(str, Enum):
-    BREATH = "BREATH"
-    RAINBOW = "RAINBOW"
-    RUNNER = "RUNNER"
-    SOLID = "SOLID"
-    FIRE = "FIRE"
-    MUSIC = "MUSIC"
+    RAINBOW = "one"
+    BREATH = "two"
+    RUNNER = "three"
+    FIRE = "four"
+    SOLID = "five"
+    MUSIC = "six"
 
 
 class StripColor(str, Enum):

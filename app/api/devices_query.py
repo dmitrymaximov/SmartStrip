@@ -36,6 +36,8 @@ async def devices_query(request: Request, body: QueryRequest, user: User = Depen
                 instance = cap.parameters.get("instance")
             elif cap.type == "devices.capabilities.mode":
                 instance = cap.parameters.get("instance")
+            elif cap.type == "devices.capabilities.color_setting":
+                instance = cap.parameters.get("color_model")
 
             if not instance:
                 continue

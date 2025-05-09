@@ -35,22 +35,22 @@ class Device(BaseModel):
         self.state["on"] = value
 
     def get_brightness(self):
-        pass
+        return self.state["brightness"]
 
     def update_brightness(self, value: Any):
-        pass
+        return self.state["brightness"]
 
     def get_mode(self):
-        pass
+        return self.state["program"]
 
-    def update_mode(self, value: Any):
-        pass
+    def update_mode(self, value: StripMode):
+        self.state["program"] = value
 
     def get_color(self):
-        pass
+        return self.state["hsv"]
 
     def update_color(self, value: Any):
-        pass
+        self.state["hsv"] = value
 
 
 
@@ -84,17 +84,20 @@ def init_device_registry() -> Dict[str, Device]:
                 parameters={
                     "instance": "program",
                     "modes": [
-                        {"value": "one", "name": {"ru": "Один"}},
-                        {"value": "two", "name": {"ru": "Два"}},
-                        {"value": "three", "name": {"ru": "Три"}},
-                        {"value": "four", "name": {"ru": "Четыре"}},
-                        {"value": "five", "name": {"ru": "Пять"}},
-                        {"value": "six", "name": {"ru": "Шесть"}},
-                        {"value": "seven", "name": {"ru": "Семь"}},
-                        {"value": "eight", "name": {"ru": "Восемь"}},
-                        {"value": "nine", "name": {"ru": "Девять"}},
-                        {"value": "ten", "name": {"ru": "Десять"}}
+                        {"value": "one"},
+                        {"value": "two"},
+                        {"value": "three"},
+                        {"value": "four"},
+                        {"value": "five"},
+                        {"value": "six"},
                     ]
+                }
+            ),
+            Capability(
+                type="devices.capabilities.color_setting",
+                retrievable=True,
+                parameters={
+                    "color_model": "hsv"
                 }
             )
         ],
@@ -102,7 +105,12 @@ def init_device_registry() -> Dict[str, Device]:
         state={
             "on": True,
             "brightness": 100,
-            "program": "one"
+            "program": "one",
+            "hsv": {
+                "h": 240,
+                "s": 100,
+                "v": 100
+            }
         }
     )}
     return devices

@@ -1,12 +1,14 @@
+from black import parse_ast
 from fastapi import APIRouter, Depends, Request
 
 from pydantic import BaseModel
 from typing import List, Dict, Any
 
+from app.models.Enums import StripMode
 from app.models.User import User
 from app.models.Device import devices_registry
 from app.utils.verification import verify_token
-from app.api.esp_requests import update_state, update_brightness
+from app.api.esp_requests import update_state, update_brightness, update_color, update_mode
 
 router = APIRouter()
 
@@ -60,7 +62,6 @@ async def action_devices(request: Request, body: ActionRequest, user: User = Dep
                 dev.state[inst] = val
                 await update_state(new_state=val, device=dev)
 
-                # формируем результат для этого capability
                 caps_result.append({
                     "type": cap.type,
                     "state": {
@@ -85,8 +86,11 @@ async def action_devices(request: Request, body: ActionRequest, user: User = Dep
                     }
                 })
             elif inst == "program":
-                if val not in ["one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"]:
+                if val not in ["one", "two", "three", "four", "five", "six"]:
                     continue
+
+                dev.state[inst] = val
+                await update_mode(new_mode=val, device=dev)
 
                 caps_result.append({
                     "type": cap.type,
@@ -95,9 +99,24 @@ async def action_devices(request: Request, body: ActionRequest, user: User = Dep
                         "action_result": {"status": "DONE"}
                     }
                 })
+            elif inst == "hsv":
+                if not isinstance(val, dict) or not all(k in val for k in ["h", "s", "v"]):
+                    continue
+
+                dev.state[inst] = val
+                await update_color(new_color=val, device=dev)
+
+                caps_result.append({
+                    "type": cap.type,
+                    "state": {
+                        "instance": inst,
+                        "action_result": {
+                            "status": "DONE"
+                        }
+                    }
+                })
 
             else:
-                # handle other capabilities like brightness if applicable
                 print(f"Unsupported capability instance: {inst} for device {dev.id}")
                 caps_result.append({
                     "type": cap.type,
