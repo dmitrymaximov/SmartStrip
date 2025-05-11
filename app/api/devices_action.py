@@ -1,14 +1,13 @@
-from black import parse_ast
 from fastapi import APIRouter, Depends, Request
 
 from pydantic import BaseModel
 from typing import List, Dict, Any
 
-from app.models.Enums import StripMode
 from app.models.User import User
 from app.models.Device import devices_registry
 from app.utils.verification import verify_token
 from app.api.esp_requests import update_state, update_brightness, update_color, update_mode
+
 
 router = APIRouter()
 
@@ -36,102 +35,86 @@ class ActionRequest(BaseModel):
     payload: ActionPayload
 
 
-
 @router.post("/smart-strip/v1.0/user/devices/action", tags=["alisa"])
 async def action_devices(request: Request, body: ActionRequest, user: User = Depends(verify_token)):
     request_id = request.headers.get("X-Request-Id")
     response_devices = []
 
-    for action_dev in body.payload.devices:
-        dev = devices_registry.get(action_dev.id)
-        if not dev:
+    for requested_device in body.payload.devices:
+        device = devices_registry.get(requested_device.id)
+        if not device:
             continue
 
         caps_result = []
 
-        for cap in action_dev.capabilities:
+        for cap in requested_device.capabilities:
             inst = cap.state.instance
             val = cap.state.value
-
-            print(f"Device {dev.id} action: {inst} = {val}")
+            status = "ERROR"
+            error_code = None
+            error_message = None
 
             if inst == "on":
-                if val not in [True, False]:
-                    continue
+                if val in [True, False]:
+                    device.state[inst] = val
+                    await update_state(new_state=val, device=device)
+                    status = "DONE"
+                else:
+                    error_code = "INVALID_VALUE"
+                    error_message = f"Invalid value {val} for 'on'"
 
-                dev.state[inst] = val
-                await update_state(new_state=val, device=dev)
-
-                caps_result.append({
-                    "type": cap.type,
-                    "state": {
-                        "instance": inst,
-                        "action_result": {
-                            "status": "DONE"
-                        }
-                    }
-                })
             elif inst == "brightness":
-                if not isinstance(val, int) or not (0 <= val <= 100):
-                    continue
+                if isinstance(val, int) and 0 <= val <= 100:
+                    device.state[inst] = val
+                    await update_brightness(new_brightness=val, device=device)
+                    status = "DONE"
+                else:
+                    error_code = "INVALID_VALUE"
+                    error_message = f"Invalid brightness value: {val}"
 
-                dev.state[inst] = val
-                await update_brightness(new_brightness=val, device=dev)
-
-                caps_result.append({
-                    "type": cap.type,
-                    "state": {
-                        "instance": inst,
-                        "action_result": {"status": "DONE"}
-                    }
-                })
             elif inst == "program":
-                if val not in ["one", "two", "three", "four", "five", "six"]:
-                    continue
+                if val in ["one", "two", "three", "four", "five", "six"]:
+                    device.state[inst] = val
+                    await update_mode(new_mode=val, device=device)
+                    status = "DONE"
+                else:
+                    error_code = "INVALID_VALUE"
+                    error_message = f"Invalid mode: {val}"
 
-                dev.state[inst] = val
-                await update_mode(new_mode=val, device=dev)
-
-                caps_result.append({
-                    "type": cap.type,
-                    "state": {
-                        "instance": inst,
-                        "action_result": {"status": "DONE"}
-                    }
-                })
             elif inst == "hsv":
-                if not isinstance(val, dict) or not all(k in val for k in ["h", "s", "v"]):
-                    continue
-
-                dev.state[inst] = val
-                await update_color(new_color=val, device=dev)
-
-                caps_result.append({
-                    "type": cap.type,
-                    "state": {
-                        "instance": inst,
-                        "action_result": {
-                            "status": "DONE"
-                        }
-                    }
-                })
+                if  isinstance(val, dict) and all(k in val for k in ["h", "s", "v"]):
+                    device.state[inst] = val
+                    await update_color(new_color=val, device=device)
+                    status = "DONE"
+                else:
+                    error_code = "INVALID_VALUE"
+                    error_message = f"Invalid HSV value: {val}"
 
             else:
-                print(f"Unsupported capability instance: {inst} for device {dev.id}")
-                caps_result.append({
-                    "type": cap.type,
-                    "state": {
-                        "instance": inst,
-                        "action_result": {
-                            "status": "ERROR",
-                            "error_code": "UNSUPPORTED_CAPABILITY",
-                            "error_message": f"Unsupported capability {inst}"
-                        }
+                error_code = "UNSUPPORTED_CAPABILITY"
+                error_message = f"Unsupported capability instance: {inst}"
+
+            result = {
+                "type": cap.type,
+                "state": {
+                    "instance": inst,
+                    "action_result": {
+                        "status": status
                     }
+                }
+            }
+
+            if status == "ERROR":
+                result["state"]["action_result"].update({
+                    "error_code": error_code,
+                    "error_message": error_message
                 })
 
+            caps_result.append(result)
+
+
         response_devices.append({
-            "id": dev.id,
+            "id": device.id,
             "capabilities": caps_result
         })
 
