@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, Request
 
 from pydantic import BaseModel
-from typing import List, Dict, Any
+from typing import Any
 
 from app.models.User import User
 from app.models.Device import devices_registry
@@ -10,6 +10,7 @@ from app.api.esp_requests import update_state, update_brightness, update_color, 
 
 
 router = APIRouter()
+
 
 class ActionCapabilityState(BaseModel):
     instance: str
@@ -23,12 +24,12 @@ class ActionCapability(BaseModel):
 
 class ActionDevice(BaseModel):
     id: str
-    custom_data: Dict[str, Any] | None = None
-    capabilities: List[ActionCapability]
+    custom_data: dict[str, Any] | None = None
+    capabilities: list[ActionCapability]
 
 
 class ActionPayload(BaseModel):
-    devices: List[ActionDevice]
+    devices: list[ActionDevice]
 
 
 class ActionRequest(BaseModel):
