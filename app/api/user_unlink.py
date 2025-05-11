@@ -10,6 +10,7 @@ router = APIRouter()
 async def unlink_user(request: Request, user: User = Depends(verify_token)):
     users_cache.pop(user.user_id, None)
     request_id = request.headers.get("X-Request-Id")
+
     return {
         "request_id": request_id
     }

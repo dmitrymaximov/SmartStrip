@@ -5,6 +5,9 @@ from fastapi import status
 import httpx
 
 
+YANDEX_TOKEN_URL = "https://oauth.yandex.ru/token"
+
+
 class User(BaseModel):
     user_id: str
     display_name: str | None = None
@@ -29,8 +32,7 @@ class User(BaseModel):
 
     async def refresh(self, client_id: str, client_secret: str) -> bool:
         if not self.refresh_token:
-            print("Нет refresh_token, нельзя обновить токен")
-            return False
+            raise ValueError("No refresh_token available")
 
         data = {
             "grant_type": "refresh_token",
@@ -40,28 +42,27 @@ class User(BaseModel):
         }
 
         async with httpx.AsyncClient() as client:
-            response = await client.post("https://oauth.yandex.ru/token", data=data)
+            response = await client.post(YANDEX_TOKEN_URL, data=data)
             if response.status_code == status.HTTP_200_OK:
                 token_data = response.json()
                 self.access_token = token_data["access_token"]
                 self.expires_at = datetime.now(timezone.utc) + timedelta(seconds=token_data["expires_in"])
                 self.refresh_token = token_data.get("refresh_token", self.refresh_token)
-                print("Токен успешно обновлён")
                 return True
             else:
-                print("Ошибка при обновлении токена:", response.text)
-                return False
+                raise Exception(f"Error refreshing token: {response.text}")
 
 
-def init_user_cache(with_test_user: bool = True):
+def init_user_cache(test_user: bool = False) -> dict[str, User]:
     users: dict[str, User] = {}
 
-    user_id = "541998514"
-    access_token = "y0__xCy-7iCAhiKwzcgsZmFghNtskQ8MzK1OYz-cOTd-ZrtOGiw9A"
-    expires_at =  datetime.now(timezone.utc) + timedelta(seconds=10000)
+    if test_user:
+        user_id = "541998514"
+        access_token = "y0__xCy-7iCAhiKwzcgsZmFghNtskQ8MzK1OYz-cOTd-ZrtOGiw9A"
+        expires_at =  datetime.now(timezone.utc) + timedelta(seconds=10000)
 
-    user = User(user_id=user_id, access_token=access_token, expires_at=expires_at)
-    users[user.user_id] = user
+        user = User(user_id=user_id, access_token=access_token, expires_at=expires_at)
+        users[user.user_id] = user
 
     return users
 

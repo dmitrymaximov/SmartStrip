@@ -1,14 +1,13 @@
 from pydantic import BaseModel, Field
-from typing import Any, Dict, List
+from typing import Any
 
-from app.models.Enums import StripColor, StripMode, StripState, StripTest
-
+from app.models.Enums import StripMode
 
 
 class Capability(BaseModel):
     type: str
     retrievable: bool = False
-    parameters: Dict[str, Any] | None = None
+    parameters: dict[str, Any] | None = None
 
 
 class DeviceInfo(BaseModel):
@@ -22,11 +21,12 @@ class Device(BaseModel):
     id: str
     name: str
     type: str = Field(..., alias="device_type")
-    capabilities: List[Capability] = []
-    properties: List[Any] = []
+    capabilities: list[Capability] = []
+    properties: list[Any] = []
     device_info: DeviceInfo
+
     # Здесь храним текущее состояние — ключи совпадают с instance в capabilities
-    state: Dict[str, Any] = Field(default_factory=dict)
+    state: dict[str, Any] = Field(default_factory=dict)
 
     def get_state(self):
         return self.state["on"]
@@ -37,7 +37,7 @@ class Device(BaseModel):
     def get_brightness(self):
         return self.state["brightness"]
 
-    def update_brightness(self, value: Any):
+    def update_brightness(self, value: int):
         return self.state["brightness"]
 
     def get_mode(self):
@@ -49,13 +49,13 @@ class Device(BaseModel):
     def get_color(self):
         return self.state["hsv"]
 
-    def update_color(self, value: Any):
+    def update_color(self, value: dict[str, int]):
         self.state["hsv"] = value
 
 
 
-def init_device_registry() -> Dict[str, Device]:
-    devices: Dict[str, Device] = {"smart_strip": Device(
+def init_device_registry() -> dict[str, Device]:
+    devices: dict[str, Device] = {"smart_strip": Device(
         id="smart_strip",
         name="Умная лента",
         device_type="devices.types.light",
@@ -88,8 +88,7 @@ def init_device_registry() -> Dict[str, Device]:
                         {"value": "two"},
                         {"value": "three"},
                         {"value": "four"},
-                        {"value": "five"},
-                        {"value": "six"},
+                        {"value": "five"}
                     ]
                 }
             ),
@@ -101,7 +100,11 @@ def init_device_registry() -> Dict[str, Device]:
                 }
             )
         ],
-        device_info=DeviceInfo(manufacturer="Maxs", model="Strip", hw_version="1.0", sw_version="1.0"),
+        device_info=DeviceInfo(
+            manufacturer="Maxs",
+            model="Strip",
+            hw_version="1.0",
+            sw_version="1.0"),
         state={
             "on": True,
             "brightness": 100,
@@ -116,4 +119,4 @@ def init_device_registry() -> Dict[str, Device]:
     return devices
 
 
-devices_registry: Dict[str, Device] = init_device_registry()
+devices_registry = init_device_registry()

@@ -13,9 +13,10 @@ class Config:
     client_secret: str
 
 
-def load_config(path: str = None) -> Config:
+def load_config(path: str | None = None) -> Config:
     env = Env()
-    env.read_env(Path(__file__).parent.parent / ".env")
+    env_path = Path(path) if path else Path(__file__).parent.parent / ".env"
+    env.read_env(env_path)
 
     return Config(
         login=env("LOGIN"),

@@ -1,12 +1,16 @@
 from fastapi import WebSocket, WebSocketDisconnect, APIRouter, Depends, status
 
 from app.utils.verification import verify_basic_auth, verify_websocket, verify_api_key
+from app.utils.logger import logger
 from app.models.Device import Device, devices_registry
-from app.models.Enums import StripColor, StripState, StripMode, StripCommand
+from app.models.Enums import StripState, StripMode, StripCommand
 
+from typing import Any
 
 router = APIRouter()
 active_connections = set()
+
+#todo need to refactor post methods
 
 @router.websocket("/ws/{client_id}")
 async def websocket_endpoint(websocket: WebSocket, client_id: str):
@@ -16,15 +20,15 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
     await websocket.accept()
 
     active_connections.add(websocket)
-    print(f"New connection added with client_id = {client_id}")
+    logger.debug(f"New connection added with client_id = {client_id}")
 
     try:
         while True:
             data = await websocket.receive_text()
-            print(f"Message from {client_id}: {data}")
+            logger.debug(f"Message from {client_id}: {data}")
     except WebSocketDisconnect:
         active_connections.remove(websocket)
-        print(f"Client {client_id} disconnected")
+        logger.debug(f"Client {client_id} disconnected")
 
 
 async def send_command_to_esp32(command: str):
@@ -38,16 +42,20 @@ async def send_command_to_esp32(command: str):
 @router.post("/send-command")
 async def send_command(command: str, api_key: str = Depends(verify_api_key)):
     await send_command_to_esp32(f"{command}")
-    return {"status": "ok", "msg": f"sent command: {command}"}
+
+    return {
+        "status": "ok",
+        "msg": f"sent command: {command}"
+    }
 
 
 @router.get("/color", tags=["esp"])
-async def color(auth: bool = Depends(verify_basic_auth)) -> StripColor:
+async def color(auth: bool = Depends(verify_basic_auth)):
     pass
 
 
 @router.post("/color", tags=["esp"])
-async def set_color(new_color: StripColor, api_key: str = Depends(verify_api_key)):
+async def set_color(new_color: Any, api_key: str = Depends(verify_api_key)):
     device = devices_registry["smart_strip"]
     await update_color(new_color=new_color, device=device)
 
@@ -119,19 +127,17 @@ async def update_state(new_state: bool | StripState, device: Device):
     await send_command_to_esp32(f"{command}:{value}")
     device.update_state(new_state)
 
-    print("device state updated")
+    logger.debug(f"device state updated to {value}")
 
 
 async def update_brightness(new_brightness: int, device: Device):
     command = StripCommand.BRIGHTNESS
-
-
     value = max(0, min(100, new_brightness))
 
     await send_command_to_esp32(f"{command}:{value}")
     device.update_brightness(value)
 
-    print(f"device brightness updated to {value}")
+    logger.debug(f"device brightness updated to {value}")
 
 
 async def update_mode(new_mode: StripMode, device: Device):
@@ -141,7 +147,7 @@ async def update_mode(new_mode: StripMode, device: Device):
     await send_command_to_esp32(f"{command}:{value}")
     device.update_mode(value)
 
-    print("device mode updated")
+    logger.debug(f"device mode updated to {value}")
 
 
 async def update_color(new_color: dict, device: Device):
@@ -151,4 +157,4 @@ async def update_color(new_color: dict, device: Device):
     await send_command_to_esp32(f"{command}:{value}")
     device.update_color(new_color)
 
-    print("device color updated")
+    logger.debug(f"device color updated to {value}")

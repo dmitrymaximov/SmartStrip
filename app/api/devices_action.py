@@ -11,7 +11,6 @@ from app.api.esp_requests import update_state, update_brightness, update_color, 
 
 router = APIRouter()
 
-
 class ActionCapabilityState(BaseModel):
     instance: str
     value: Any
@@ -74,7 +73,7 @@ async def action_devices(request: Request, body: ActionRequest, user: User = Dep
                     error_message = f"Invalid brightness value: {val}"
 
             elif inst == "program":
-                if val in ["one", "two", "three", "four", "five", "six"]:
+                if val in ["one", "two", "three", "four", "five"]:
                     device.state[inst] = val
                     await update_mode(new_mode=val, device=device)
                     status = "DONE"

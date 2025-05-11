@@ -9,7 +9,6 @@ from app.utils.verification import verify_token
 
 router = APIRouter()
 
-
 class DeviceQuery(BaseModel):
     id: str
 

@@ -7,11 +7,10 @@ import httpx
 from app.models.User import User, users_cache
 from app.utils.config import app_config
 
+
 AUTHORIZATION_URL = "https://maxsfamily.ru/oauth/authorize"
 TOKEN_URL = "https://maxsfamily.ru/oauth/token"
 YANDEX_USERINFO_URL = "https://login.yandex.ru/info"
-
-
 
 security = HTTPBasic()
 oauth2_scheme = OAuth2AuthorizationCodeBearer(
@@ -19,9 +18,12 @@ oauth2_scheme = OAuth2AuthorizationCodeBearer(
     tokenUrl=TOKEN_URL
 )
 
-def verify_basic_auth(credentials: HTTPBasicCredentials = Depends(security)):
+
+# Проверка базовой аутентификации
+def verify_basic_auth(credentials: HTTPBasicCredentials = Depends(security)) -> bool:
     correct_username = secrets.compare_digest(credentials.username, app_config.login)
     correct_password = secrets.compare_digest(credentials.password, app_config.password)
+
     if not (correct_username and correct_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -31,8 +33,9 @@ def verify_basic_auth(credentials: HTTPBasicCredentials = Depends(security)):
     return True
 
 
-async def verify_api_key(api_key: str = Header(..., alias="X-API-Key")):
-    if api_key != app_config.api_key:
+# Проверка API ключа
+async def verify_api_key(api_key: str = Header(..., alias="X-API-Key")) -> bool:
+    if not api_key or api_key != app_config.api_key:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Invalid API Key"
@@ -40,7 +43,8 @@ async def verify_api_key(api_key: str = Header(..., alias="X-API-Key")):
     return True
 
 
-async def verify_websocket(websocket: WebSocket):
+# Проверка WebSocket соединения
+async def verify_websocket(websocket: WebSocket) -> bool:
     api_key = websocket.headers.get("X-API-Key")
     if api_key != app_config.api_key:
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
@@ -48,8 +52,11 @@ async def verify_websocket(websocket: WebSocket):
     return True
 
 
+# Проверка токена через заголовок
 async def verify_token(authorization: str = Header(...)) -> User:
     token = authorization.removeprefix("Bearer ").strip()
+
+    # Ищем пользователя в кеше
     user = next((u for u in users_cache.values() if u.access_token == token), None)
 
     if user:
@@ -60,6 +67,7 @@ async def verify_token(authorization: str = Header(...)) -> User:
         if refreshed:
             return user
 
+        # Если токен не валиден, удаляем пользователя из кеша
         users_cache.pop(user.user_id, None)
 
     # Токена в кеше нет — проверяем через Яндекс
@@ -69,11 +77,10 @@ async def verify_token(authorization: str = Header(...)) -> User:
             headers={"Authorization": f"OAuth {token}"}
         )
 
-        if resp.status_code != status.HTTP_200_OK:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+    if resp.status_code != status.HTTP_200_OK:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
 
-        userinfo = resp.json()
-
+    userinfo = resp.json()
     expires_in = int(userinfo.get("expires_in", 3600))
     new_user = User.from_token_response(
         token=token,
