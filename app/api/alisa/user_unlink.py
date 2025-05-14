@@ -8,7 +8,7 @@ router = APIRouter()
 
 @router.post("/smart-strip/v1.0/user/unlink", tags=["alisa"])
 async def unlink_user(request: Request, user: User = Depends(verify_token)):
-    users_cache.pop(user.user_id, None)
+    users_cache.remove_user(user)
     request_id = request.headers.get("X-Request-Id")
 
     return {

@@ -57,7 +57,7 @@ async def verify_token(authorization: str = Header(...)) -> User:
     token = authorization.removeprefix("Bearer ").strip()
 
     # Ищем пользователя в кеше
-    user = next((u for u in users_cache.values() if u.access_token == token), None)
+    user = users_cache.get_user_by_token(token)
 
     if user:
         if user.is_token_valid():
@@ -68,7 +68,7 @@ async def verify_token(authorization: str = Header(...)) -> User:
             return user
 
         # Если токен не валиден, удаляем пользователя из кеша
-        users_cache.pop(user.user_id, None)
+        users_cache.remove_user(user)
 
     # Токена в кеше нет — проверяем через Яндекс
     async with httpx.AsyncClient() as client:
@@ -88,5 +88,5 @@ async def verify_token(authorization: str = Header(...)) -> User:
         userinfo=userinfo
     )
 
-    users_cache[new_user.user_id] = new_user
+    users_cache.add_user(new_user)
     return new_user

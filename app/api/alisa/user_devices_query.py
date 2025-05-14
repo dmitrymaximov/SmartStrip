@@ -23,7 +23,7 @@ async def devices_query(request: Request, body: QueryRequest, user: User = Depen
     response_devices = []
 
     for requested_device in body.devices:
-        device = devices_registry.get(requested_device["id"])
+        device = devices_registry.get(requested_device.id)
         if not device:
             continue
 

@@ -53,18 +53,38 @@ class User(BaseModel):
                 raise Exception(f"Error refreshing token: {response.text}")
 
 
-def init_user_cache(test_user: bool = False) -> dict[str, User]:
-    users: dict[str, User] = {}
+class UserRegistry:
+    users: list[User] = list()
 
-    if test_user:
-        user_id = "541998514"
-        access_token = "y0__xCy-7iCAhiKwzcgsZmFghNtskQ8MzK1OYz-cOTd-ZrtOGiw9A"
-        expires_at =  datetime.now(timezone.utc) + timedelta(seconds=10000)
+    def add_user(self, user: User):
+        self.users.append(user)
+
+    def get_user_by_id(self, user_id: str) -> User | None:
+        return next((user for user in self.users if user.user_id == user_id), None)
+
+    def get_user_by_token(self, token: str) -> User | None:
+        return next((user for user in self.users if user.access_token == token), None)
+
+    def get_users(self) -> list[str]:
+        return [user.user_id for user in self.users]
+
+    def remove_user(self, user):
+        if user in self.users:
+            self.users.remove(user)
+
+    def remove_user_by_id(self, user_id: str):
+        user = self.get_user_by_id(user_id)
+
+        if user:
+            self.users.remove(user)
+
+    def init_test_user(self, user_id: str ="000000000"):
+        access_token: str = "token_id"
+        expires_at : datetime = datetime.now(timezone.utc) + timedelta(days=1000)
 
         user = User(user_id=user_id, access_token=access_token, expires_at=expires_at)
-        users[user.user_id] = user
-
-    return users
+        self.add_user(user)
 
 
-users_cache = init_user_cache()
+users_cache = UserRegistry()
+users_cache.init_test_user()

@@ -4,7 +4,7 @@ from app.utils.verification import verify_basic_auth
 
 router = APIRouter()
 
-@router.get("/")
+@router.get("/", tags=["general"])
 async def root(auth: bool = Depends(verify_basic_auth)):
     return {
         "message": "Hi"

@@ -4,9 +4,9 @@ from pydantic import BaseModel
 from typing import Any
 
 from app.models.User import User
-from app.models.Device import devices_registry
+from app.models.Device import devices_registry, HSVColor
 from app.utils.verification import verify_token
-from app.api.esp_requests import update_state, update_brightness, update_color, update_mode
+from app.api.esp.esp_requests import update_state, update_brightness, update_color, update_mode
 
 
 router = APIRouter()
@@ -41,7 +41,8 @@ async def action_devices(request: Request, body: ActionRequest, user: User = Dep
     response_devices = []
 
     for requested_device in body.payload.devices:
-        device = devices_registry.get(requested_device.id)
+        device_id = requested_device.id
+        device = devices_registry.get_device_by_id(device_id)
         if not device:
             continue
 
@@ -56,8 +57,8 @@ async def action_devices(request: Request, body: ActionRequest, user: User = Dep
 
             if inst == "on":
                 if val in [True, False]:
-                    device.state[inst] = val
-                    await update_state(new_state=val, device=device)
+                    device.state.on = val
+                    await update_state(device_id, val)
                     status = "DONE"
                 else:
                     error_code = "INVALID_VALUE"
@@ -65,8 +66,8 @@ async def action_devices(request: Request, body: ActionRequest, user: User = Dep
 
             elif inst == "brightness":
                 if isinstance(val, int) and 0 <= val <= 100:
-                    device.state[inst] = val
-                    await update_brightness(new_brightness=val, device=device)
+                    device.state.brightness = val
+                    await update_brightness(device_id, val)
                     status = "DONE"
                 else:
                     error_code = "INVALID_VALUE"
@@ -74,8 +75,8 @@ async def action_devices(request: Request, body: ActionRequest, user: User = Dep
 
             elif inst == "program":
                 if val in ["one", "two", "three", "four", "five"]:
-                    device.state[inst] = val
-                    await update_mode(new_mode=val, device=device)
+                    device.state.program = val
+                    await update_mode(device_id, val)
                     status = "DONE"
                 else:
                     error_code = "INVALID_VALUE"
@@ -83,8 +84,8 @@ async def action_devices(request: Request, body: ActionRequest, user: User = Dep
 
             elif inst == "hsv":
                 if  isinstance(val, dict) and all(k in val for k in ["h", "s", "v"]):
-                    device.state[inst] = val
-                    await update_color(new_color=val, device=device)
+                    device.state.hsv = val
+                    await update_color(device_id, HSVColor(**val))
                     status = "DONE"
                 else:
                     error_code = "INVALID_VALUE"
