@@ -23,7 +23,8 @@ async def devices_query(request: Request, body: QueryRequest, user: User = Depen
     response_devices = []
 
     for requested_device in body.devices:
-        device = devices_registry.get(requested_device.id)
+        device = devices_registry.get_device_by_id(requested_device.id)
+        # device = devices_registry.get(requested_device.id)
         if not device:
             continue
 
@@ -32,23 +33,26 @@ async def devices_query(request: Request, body: QueryRequest, user: User = Depen
         for cap in device.capabilities:
             cap_type = cap.type
             instance = None
+            value = None
 
             if cap_type == "devices.capabilities.on_off":
                 instance = "on"
+                value = device.state.on
 
             elif cap_type == "devices.capabilities.range":
                 instance = cap.parameters.get("instance")
+                value = device.state.brightness
 
             elif cap_type == "devices.capabilities.mode":
                 instance = cap.parameters.get("instance")
+                value = device.state.program
 
             elif cap_type == "devices.capabilities.color_setting":
                 instance = cap.parameters.get("color_model")
+                value = device.state.hsv
 
-            if not instance:
+            if not instance or not value:
                 continue
-
-            value = device.state.get(instance)
 
             capabilities.append({
                 "type": cap_type,

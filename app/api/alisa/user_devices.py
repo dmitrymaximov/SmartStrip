@@ -10,13 +10,11 @@ router = APIRouter()
 @router.get("/smart-strip/v1.0/user/devices", tags=["alisa"])
 async def devices(request: Request, user: User = Depends(verify_token)):
     request_id = request.headers.get("X-Request-Id")
-    user_id = user.user_id
-    all_devices = list(devices_registry.values())
 
     return {
         "request_id": request_id,
         "payload": {
-            "user_id": user_id,
-            "devices": all_devices
+            "user_id": user.user_id,
+            "devices": devices_registry.devices
         }
     }

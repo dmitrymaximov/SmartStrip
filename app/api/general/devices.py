@@ -8,4 +8,4 @@ router = APIRouter()
 
 @router.get("/devices", tags=["general"])
 async def devices(api_key: str = Depends(verify_api_key)) -> list[str]:
-    return devices_registry.get_devices()
+    return devices_registry.get_devices_ids()

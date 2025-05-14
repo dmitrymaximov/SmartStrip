@@ -43,7 +43,10 @@ class Device(BaseModel, Generic[STATE]):
     connection: WebSocket | None = None
 
     model_config = {
-        "arbitrary_types_allowed": True
+        "arbitrary_types_allowed": True,
+        "json_encoders": {
+            WebSocket: lambda v: None
+        }
     }
 
 
@@ -52,7 +55,7 @@ class SmartStripDevice(Device[SmartStripState]):
         super().__init__(
             id=device_id,
             name="Умная лента",
-            device_type="devices.types.light",
+            device_type="devices.types.light.strip",
             capabilities=[
                 Capability(
                     type="devices.capabilities.on_off",
@@ -108,7 +111,7 @@ class DeviceRegistry:
     def get_device_by_id(self, device_id: str) -> SmartStripDevice | None:
         return next((device for device in self.devices if device.id == device_id), None)
 
-    def get_devices(self) -> list[str]:
+    def get_devices_ids(self) -> list[str]:
         return [device.id for device in self.devices]
 
     def remove_device(self, device):
@@ -127,6 +130,6 @@ class DeviceRegistry:
 
 
 devices_registry = DeviceRegistry()
-devices_registry.init_test_device("test_1")
-devices_registry.init_test_device("test_2")
+# devices_registry.init_test_device("test_1")
+# devices_registry.init_test_device("test_2")
 
