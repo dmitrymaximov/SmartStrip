@@ -1,0 +1,5 @@
+LOGIN="login"
+PASSWORD="password"
+API_KEY="password"
+CLIENT_ID="cliend_id"
+CLIENT_SECRET="client_secret"
