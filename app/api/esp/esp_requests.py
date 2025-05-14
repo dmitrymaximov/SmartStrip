@@ -199,4 +199,3 @@ async def update_color(device_id: str, color: HSVColor):
         logger.debug(f"device color updated to {value}")
     else:
         logger.debug(f"device with id {device_id} isn't exist")
-

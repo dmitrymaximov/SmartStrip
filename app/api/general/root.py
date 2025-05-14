@@ -7,5 +7,5 @@ router = APIRouter()
 @router.get("/", tags=["general"])
 async def root(auth: bool = Depends(verify_basic_auth)):
     return {
-        "message": "Hi"
+        "message": "Hellow world"
     }

@@ -11,6 +11,7 @@ from app.api.esp.esp_requests import update_state, update_brightness, update_col
 
 router = APIRouter()
 
+
 class ActionCapabilityState(BaseModel):
     instance: str
     value: Any

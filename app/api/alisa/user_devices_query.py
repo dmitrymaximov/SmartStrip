@@ -9,6 +9,7 @@ from app.utils.verification import verify_token
 
 router = APIRouter()
 
+
 class DeviceQuery(BaseModel):
     id: str
 
@@ -24,7 +25,6 @@ async def devices_query(request: Request, body: QueryRequest, user: User = Depen
 
     for requested_device in body.devices:
         device = devices_registry.get_device_by_id(requested_device.id)
-        # device = devices_registry.get(requested_device.id)
         if not device:
             continue
 

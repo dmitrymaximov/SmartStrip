@@ -36,7 +36,7 @@ class SmartStripState(BaseModel):
 class Device(BaseModel, Generic[STATE]):
     id: str
     name: str
-    type: str = Field(..., alias="device_type")
+    type: str
     capabilities: list[Capability] = []
     device_info: DeviceInfo
     state: STATE
@@ -55,7 +55,7 @@ class SmartStripDevice(Device[SmartStripState]):
         super().__init__(
             id=device_id,
             name="Умная лента",
-            device_type="devices.types.light.strip",
+            type="devices.types.light.strip",
             capabilities=[
                 Capability(
                     type="devices.capabilities.on_off",
@@ -130,6 +130,3 @@ class DeviceRegistry:
 
 
 devices_registry = DeviceRegistry()
-# devices_registry.init_test_device("test_1")
-# devices_registry.init_test_device("test_2")
-

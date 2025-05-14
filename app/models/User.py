@@ -87,4 +87,3 @@ class UserRegistry:
 
 
 users_cache = UserRegistry()
-# users_cache.init_test_user()
