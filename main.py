@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.httpsredirect import HTTPSRedirectMiddleware
 
-from app.api.routes import router as api_router
+from app.routes import router as api_router
 
 
 app = FastAPI(redoc_url=None, debug=True, docs_url=None)

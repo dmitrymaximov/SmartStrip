@@ -11,6 +11,8 @@ class Config:
     api_key: str
     client_id: str
     client_secret: str
+    file_gcp_sheets_key: str
+
 
 
 def load_config(path: str | None = None) -> Config:
@@ -23,7 +25,8 @@ def load_config(path: str | None = None) -> Config:
         password=env("PASSWORD"),
         api_key=env("API_KEY"),
         client_id=env("CLIENT_ID"),
-        client_secret=env("CLIENT_SECRET")
+        client_secret=env("CLIENT_SECRET"),
+        file_gcp_sheets_key=env("FILE_GCP_SHEETS_KEY")
     )
 
 

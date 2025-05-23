@@ -1,13 +1,13 @@
 from fastapi import APIRouter, Depends, Request
 
-from app.models.User import User
-from app.models.Device import devices_registry
-from app.utils.verification import verify_token
-
+from app.general.utils.verification import verify_token
+from app.pkg_smart_strip.models.DeviceRegistry import devices_registry
+from app.pkg_smart_strip.models.User import User
 
 router = APIRouter()
 
-@router.get("/smart-strip/v1.0/user/devices", tags=["alisa"])
+
+@router.get("/smart-strip/v1.0/user/devices", tags=["smart_strip"])
 async def devices(request: Request, user: User = Depends(verify_token)):
     request_id = request.headers.get("X-Request-Id")
     user_id = user.user_id

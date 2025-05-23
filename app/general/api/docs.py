@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from fastapi.responses import HTMLResponse
 from fastapi.openapi.docs import get_swagger_ui_html
 
-from app.utils.verification import verify_basic_auth
+from app.general.utils.verification import verify_basic_auth
 
 
 router = APIRouter()

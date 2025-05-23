@@ -1,11 +1,12 @@
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends, HTTPException, status
-from fastapi import Header, Response, Request
+from fastapi import WebSocket, Depends, HTTPException, status
+from fastapi import Header
 from fastapi.security import  HTTPBasic, HTTPBasicCredentials, OAuth2AuthorizationCodeBearer
 import secrets
 import httpx
 
-from app.models.User import User, users_cache
-from app.utils.config import app_config
+from app.pkg_smart_strip.models.User import User
+from app.pkg_smart_strip.models.UserRegistry import users_cache
+from app.general.utils.config import app_config
 
 
 AUTHORIZATION_URL = "https://maxsfamily.ru/oauth/authorize"

@@ -1,10 +1,18 @@
+from enum import Enum
+from typing import Any, TypeVar, Generic
+
 from fastapi import WebSocket
-
 from pydantic import BaseModel, Field
-from typing import Any, Literal, TypeVar, Generic
-
 
 STATE = TypeVar("STATE", bound=BaseModel)
+
+
+class DeviceMode(str, Enum):
+    one = "one"
+    two = "two"
+    three = "three"
+    four = "four"
+    five = "five"
 
 
 class Capability(BaseModel):
@@ -29,7 +37,7 @@ class HSVColor(BaseModel):
 class SmartStripState(BaseModel):
     on: bool = True
     brightness: int = 100
-    program: Literal["one", "two", "three", "four", "five"] = "one"
+    program: DeviceMode = DeviceMode.one
     hsv: HSVColor = HSVColor(h=240, s=100, v=100)
 
 
@@ -77,7 +85,7 @@ class SmartStripDevice(Device[SmartStripState]):
                     retrievable=True,
                     parameters={
                         "instance": "program",
-                        "modes": [{"value": mode} for mode in ["one", "two", "three", "four", "five"]]
+                        "modes": [{"value": mode} for mode in DeviceMode]
                     }
                 ),
                 Capability(
@@ -97,36 +105,3 @@ class SmartStripDevice(Device[SmartStripState]):
             state=SmartStripState(),
             connection=connection
         )
-
-
-class DeviceRegistry:
-    devices: list[SmartStripDevice] = list()
-
-    def add_device(self, device: SmartStripDevice):
-        self.devices.append(device)
-
-    def get_device_by_id(self, device_id: str) -> SmartStripDevice | None:
-        return next((device for device in self.devices if device.id == device_id), None)
-
-    def get_devices(self) -> list[str]:
-        return [device.id for device in self.devices]
-
-    def remove_device(self, device):
-        if device in self.devices:
-            self.devices.remove(device)
-
-    def remove_device_by_id(self, device_id: str):
-        device = self.get_device_by_id(device_id)
-
-        if device:
-            self.devices.remove(device)
-
-    def init_test_device(self, device_id="test"):
-        device = SmartStripDevice(device_id)
-        self.add_device(device)
-
-
-devices_registry = DeviceRegistry()
-devices_registry.init_test_device("test_1")
-devices_registry.init_test_device("test_2")
-

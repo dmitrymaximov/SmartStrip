@@ -1,13 +1,12 @@
 from fastapi import APIRouter, Depends, Request
-
 from pydantic import BaseModel
 
-from app.models.User import User
-from app.models.Device import devices_registry
-from app.utils.verification import verify_token
-
+from app.general.utils.verification import verify_token
+from app.pkg_smart_strip.models.DeviceRegistry import devices_registry
+from app.pkg_smart_strip.models.User import User
 
 router = APIRouter()
+
 
 class DeviceQuery(BaseModel):
     id: str
@@ -17,7 +16,7 @@ class QueryRequest(BaseModel):
     devices: list[DeviceQuery]
 
 
-@router.post("/smart-strip/v1.0/user/devices/query", tags=["alisa"])
+@router.post("/smart-strip/v1.0/user/devices/query", tags=["smart_strip"])
 async def devices_query(request: Request, body: QueryRequest, user: User = Depends(verify_token)):
     request_id = request.headers.get("X-Request-Id")
     response_devices = []
