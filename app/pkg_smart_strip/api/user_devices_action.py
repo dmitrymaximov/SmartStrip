@@ -5,6 +5,7 @@ from pydantic import BaseModel
 
 from app.general.utils.verification import verify_token
 from app.pkg_smart_strip.models.DeviceRegistry import devices_registry
+from app.pkg_smart_strip.models.Device import DeviceMode
 from app.pkg_smart_strip.models.User import User
 
 router = APIRouter()
@@ -84,6 +85,7 @@ async def action_devices(request: Request, body: ActionRequest, user: User = Dep
             elif inst == "hsv":
                 if isinstance(val, dict) and all(k in val for k in ["h", "s", "v"]):
                     device.state.hsv = val
+                    device.state.program = DeviceMode.five
                     await devices_registry.update_device_state(device)
                     status = "DONE"
                 else:
