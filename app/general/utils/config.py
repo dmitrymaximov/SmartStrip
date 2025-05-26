@@ -17,7 +17,8 @@ class Config:
 
 def load_config(path: str | None = None) -> Config:
     env = Env()
-    env_path = Path(path) if path else Path(__file__).parent.parent / ".env"
+    base_dir = Path(__file__).parent.parent.parent.parent
+    env_path = Path(path) if path else base_dir / ".env"
     env.read_env(env_path)
 
     return Config(
@@ -26,7 +27,7 @@ def load_config(path: str | None = None) -> Config:
         api_key=env("API_KEY"),
         client_id=env("CLIENT_ID"),
         client_secret=env("CLIENT_SECRET"),
-        file_gcp_sheets_key=env("FILE_GCP_SHEETS_KEY")
+        file_gcp_sheets_key=base_dir / env("FILE_GCP_SHEETS_KEY")
     )
 
 
